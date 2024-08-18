@@ -32,17 +32,11 @@ if (localStorage.getItem('darkMode') === 'true') {
     themeSwitch.checked = true;
 }
 
-/**
- * Toggles between light and dark mode
- */
 function toggleTheme() {
     document.body.classList.toggle('dark-mode');
     localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
 }
 
-/**
- * Generates a payment QR code based on user input
- */
 function generatePaymentQR() {
     const amount = amountInput.value;
     expirationTime = parseInt(expirationTimeSelect.value);
@@ -55,30 +49,25 @@ function generatePaymentQR() {
     clearExistingQRCode();
 
     const transactionId = generateTransactionId();
-    const expirationTimestamp = Date.now() + (expirationTime * 1000);
-    const paymentUrl = constructPaymentUrl(transactionId, amount, expirationTimestamp);
+    const paymentUrl = constructPaymentUrl(transactionId, amount, expirationTime);
 
-    createDynamicQRCode(paymentUrl);
-    displayPaymentInfo(amount, transactionId);
-    startTimer(expirationTime);
-    addToTransactionHistory(amount, transactionId);
+    if (expirationTime > 0) {
+        createDynamicQRCode(paymentUrl);
+        startTimer(expirationTime);
+    } else {
+        createFixedQRCode(paymentUrl);
+    }
+
+    displayPaymentInfo(amount, transactionId, expirationTime);
+    addToTransactionHistory(amount, transactionId, expirationTime, 'Pending');
     downloadButton.style.display = 'block';
     simulatePaymentButton.style.display = 'block';
 }
 
-/**
- * Validates the input amount
- * @param {string} amount - The input amount
- * @returns {boolean} - True if the amount is valid, false otherwise
- */
 function isValidAmount(amount) {
     return amount && !isNaN(amount) && parseFloat(amount) > 0;
 }
 
-/**
- * Displays an error message
- * @param {string} message - The error message to display
- */
 function showError(message) {
     const errorDiv = document.createElement('div');
     errorDiv.className = 'error';
@@ -87,9 +76,6 @@ function showError(message) {
     qrcodeDiv.appendChild(errorDiv);
 }
 
-/**
- * Clears any existing QR code and timer
- */
 function clearExistingQRCode() {
     if (timer) clearInterval(timer);
     if (dynamicQRUpdateInterval) clearInterval(dynamicQRUpdateInterval);
@@ -98,31 +84,21 @@ function clearExistingQRCode() {
     simulatePaymentButton.style.display = 'none';
 }
 
-/**
- * Generates a random transaction ID
- * @returns {string} - A random transaction ID
- */
 function generateTransactionId() {
     return Math.random().toString(36).substr(2, 9);
 }
 
-/**
- * Constructs the payment URL
- * @param {string} transactionId - The transaction ID
- * @param {string} amount - The payment amount
- * @param {number} expirationTimestamp - The expiration timestamp
- * @returns {string} - The constructed payment URL
- */
-function constructPaymentUrl(transactionId, amount, expirationTimestamp) {
-    return `https://example.com/pay/${transactionId}?amount=${amount}&expires=${expirationTimestamp}`;
+function constructPaymentUrl(transactionId, amount, expirationTime) {
+    let url = `https://example.com/pay/${transactionId}?amount=${amount}`;
+    if (expirationTime > 0) {
+        const expirationTimestamp = Date.now() + (expirationTime * 1000);
+        url += `&expires=${expirationTimestamp}`;
+    }
+    return url;
 }
 
-/**
- * Creates a dynamic QR code that updates with the time remaining
- * @param {string} baseUrl - The base payment URL
- */
 function createDynamicQRCode(baseUrl) {
-    qrcodeDiv.innerHTML = ''; // Clear existing QR code
+    qrcodeDiv.innerHTML = '';
     qrCode = new QRCode(qrcodeDiv, {
         text: baseUrl,
         width: 200,
@@ -132,7 +108,6 @@ function createDynamicQRCode(baseUrl) {
         correctLevel : QRCode.CorrectLevel.H
     });
 
-    // Update QR code every second
     dynamicQRUpdateInterval = setInterval(() => {
         const updatedUrl = `${baseUrl}&timeLeft=${Math.floor(expirationTime)}`;
         qrCode.clear();
@@ -140,24 +115,27 @@ function createDynamicQRCode(baseUrl) {
     }, 1000);
 }
 
-/**
- * Displays the payment information
- * @param {string} amount - The payment amount
- * @param {string} transactionId - The transaction ID
- */
-function displayPaymentInfo(amount, transactionId) {
+function createFixedQRCode(url) {
+    qrcodeDiv.innerHTML = '';
+    qrCode = new QRCode(qrcodeDiv, {
+        text: url,
+        width: 200,
+        height: 200,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+    });
+}
+
+function displayPaymentInfo(amount, transactionId, expirationTime) {
     paymentInfoDiv.innerHTML = `
         <h3>Payment Details</h3>
         <p><strong>Amount:</strong> $${amount}</p>
         <p><strong>Transaction ID:</strong> ${transactionId}</p>
-        <p><strong>Expires in:</strong> ${expirationTime} seconds</p>
+        ${expirationTime > 0 ? `<p><strong>Expires in:</strong> ${expirationTime} seconds</p>` : '<p><strong>No expiration</strong> (Fixed QR)</p>'}
     `;
 }
 
-/**
- * Starts the expiration timer
- * @param {number} duration - The duration of the timer in seconds
- */
 function startTimer(duration) {
     let timeLeft = duration;
     updateTimerDisplay(timeLeft);
@@ -170,39 +148,36 @@ function startTimer(duration) {
             handleExpiredQRCode();
         } else {
             updateTimerDisplay(timeLeft);
-            expirationTime = timeLeft; // Update global expirationTime for dynamic QR
+            expirationTime = timeLeft;
         }
     }, 1000);
 }
 
-/**
- * Updates the timer display
- * @param {number} timeLeft - The time left in seconds
- */
 function updateTimerDisplay(timeLeft) {
     timerDisplayDiv.innerHTML = `<p>Time remaining: ${timeLeft} seconds</p>`;
 }
 
-/**
- * Handles the expiration of the QR code
- */
 function handleExpiredQRCode() {
     timerDisplayDiv.innerHTML = '<p class="expired">QR Code Expired</p>';
     qrcodeDiv.innerHTML = '';
     paymentInfoDiv.innerHTML = '';
     downloadButton.style.display = 'none';
     simulatePaymentButton.style.display = 'none';
+
+    // Update the most recent transaction to 'Expired' if it's still pending
+    if (transactionHistory.length > 0 && transactionHistory[0].status === 'Pending') {
+        transactionHistory[0].status = 'Expired';
+        localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
+        updateTransactionHistoryDisplay();
+    }
 }
 
-/**
- * Adds a transaction to the history
- * @param {string} amount - The payment amount
- * @param {string} transactionId - The transaction ID
- */
-function addToTransactionHistory(amount, transactionId) {
+function addToTransactionHistory(amount, transactionId, expirationTime, status) {
     const transaction = {
         amount,
         transactionId,
+        expirationTime,
+        status,
         timestamp: new Date().toISOString()
     };
     transactionHistory.unshift(transaction);
@@ -213,21 +188,20 @@ function addToTransactionHistory(amount, transactionId) {
     updateTransactionHistoryDisplay();
 }
 
-/**
- * Updates the transaction history display
- */
 function updateTransactionHistoryDisplay() {
     transactionHistoryList.innerHTML = '';
     transactionHistory.forEach(transaction => {
         const li = document.createElement('li');
-        li.textContent = `$${transaction.amount} - ${new Date(transaction.timestamp).toLocaleString()}`;
+        const statusClass = transaction.status.toLowerCase();
+        li.innerHTML = `
+            $${transaction.amount} - ${new Date(transaction.timestamp).toLocaleString()} 
+            ${transaction.expirationTime > 0 ? '(Dynamic)' : '(Fixed)'} 
+            <span class="status ${statusClass}">${transaction.status}</span>
+        `;
         transactionHistoryList.appendChild(li);
     });
 }
 
-/**
- * Downloads the QR code as an image
- */
 function downloadQRCode() {
     if (!qrCode) return;
     
@@ -243,9 +217,6 @@ function downloadQRCode() {
     }
 }
 
-/**
- * Simulates a payment confirmation
- */
 function simulatePayment() {
     clearInterval(timer);
     clearInterval(dynamicQRUpdateInterval);
@@ -253,10 +224,16 @@ function simulatePayment() {
     timerDisplayDiv.innerHTML = '';
     simulatePaymentButton.style.display = 'none';
     downloadButton.style.display = 'none';
+
+    // Update the most recent transaction to 'Completed'
+    if (transactionHistory.length > 0) {
+        transactionHistory[0].status = 'Completed';
+        localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
+        updateTransactionHistoryDisplay();
+    }
 }
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', () => {
-    // Set default values if needed
     expirationTimeSelect.value = '60'; // Default to 1 minute
 });

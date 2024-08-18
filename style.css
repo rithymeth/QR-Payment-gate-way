@@ -103,6 +103,7 @@ button:hover {
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    padding-left: 100px;
 }
 
 #paymentInfo, #timerDisplay {
@@ -163,4 +164,46 @@ button:hover {
 
 #themeSwitch {
     width: auto;
+}
+
+/* ... (previous styles remain the same) */
+
+#transactionHistory li {
+    background-color: var(--input-background);
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.status.pending {
+    background-color: #f39c12;
+    color: #ffffff;
+}
+
+.status.completed {
+    background-color: #2ecc71;
+    color: #ffffff;
+}
+
+.status.expired {
+    background-color: #e74c3c;
+    color: #ffffff;
+}
+
+.success {
+    color: #2ecc71;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 10px;
+    margin-right: 50px;
 }
