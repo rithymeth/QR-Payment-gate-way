@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Payment System</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>QR Code Payment</h1>
+        
+        <div class="theme-toggle">
+            <label for="themeSwitch">Dark Mode</label>
+            <input type="checkbox" id="themeSwitch">
+        </div>
+
+        <div class="input-group">
+            <label for="amount">Payment Amount ($)</label>
+            <input type="number" id="amount" min="0" step="0.01" placeholder="Enter amount">
+        </div>
+
+        <div class="input-group">
+            <label for="expirationTime">Expiration Time</label>
+            <select id="expirationTime">
+                <option value="30">30 seconds</option>
+                <option value="60">1 minute</option>
+                <option value="300">5 minutes</option>
+            </select>
+        </div>
+        
+        <button id="generateQR">Generate QR Code</button>
+
+        <div id="qrcode"></div>
+        <div id="paymentInfo"></div>
+        <div id="timerDisplay"></div>
+        <button id="downloadQR" style="display: none;">Download QR Code</button>
+        <button id="simulatePayment" style="display: none;">Simulate Payment</button>
+
+        <h2>Transaction History</h2>
+        <ul id="transactionHistory"></ul>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="./script.js"></script>
+</body>
+</html>
